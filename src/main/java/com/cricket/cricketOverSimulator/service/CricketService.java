@@ -3,7 +3,6 @@ package com.cricket.cricketOverSimulator.service;
 import com.cricket.cricketOverSimulator.model.Over;
 import com.cricket.cricketOverSimulator.model.Scores;
 import com.cricket.cricketOverSimulator.utils.Constants;
-import com.cricket.cricketOverSimulator.utils.ScoreComparator;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.stereotype.Service;
 
@@ -12,8 +11,8 @@ import java.util.*;
 @Service
 public class CricketService {
 
-    HashMap<String,Over> userToOverMap = new HashMap<>();
-    TreeSet<Scores> scoreSet = new TreeSet<Scores>(new ScoreComparator());
+    private HashMap<String,Over> userToOverMap = new HashMap<>();
+    private int[] ranksArray = new int[37];
     HashMap<Integer,Scores> hmScores = new HashMap<>();
     public Over playBall(String userId) throws Exception {
         if(!userToOverMap.containsKey(userId)){
@@ -22,7 +21,7 @@ public class CricketService {
             Over currentOver = userToOverMap.get(userId);
             int prevBall = currentOver.getBallsPlayed();
             if(!Constants.ACTIVE.equals(currentOver.getMatchStatus())){
-                findRank(currentOver,userId);
+                findRank(currentOver,currentOver.getTotalScore());
                 return currentOver;
             }
             Random ran = new Random();
@@ -30,16 +29,15 @@ public class CricketService {
             if(randomOutput == -1){
                 currentOver.setMatchStatus(Constants.PLAYER_OUT);
                 currentOver.setBallsPlayed(prevBall+1);
-                findRank(currentOver,userId);
+                findRank(currentOver,currentOver.getTotalScore());
                 return currentOver;
             }else{
-                int runs = randomOutput;
                 currentOver.setBallsPlayed(prevBall+1);
-                currentOver.setTotalScore(runs+currentOver.getTotalScore());
-                currentOver.getBallToRunMap().put(prevBall+1,runs);
+                currentOver.setTotalScore(randomOutput+currentOver.getTotalScore());
+                currentOver.getBallToRunMap().put(prevBall+1,randomOutput);
                 if(prevBall >= 5){
                     currentOver.setMatchStatus(Constants.OVER_FINISHED);
-                    findRank(currentOver,userId);
+                    findRank(currentOver,currentOver.getTotalScore());
                 }
                 return currentOver;
             }
@@ -53,24 +51,19 @@ public class CricketService {
         return userID;
     }
 
-    public void findRank(Over currentOver, String userId){
-
-        Scores sc = hmScores.get(currentOver.getTotalScore());
-        if(sc == null){
-            sc = new Scores(currentOver.getTotalScore());
-            scoreSet.add(sc);
-            hmScores.put(currentOver.getTotalScore(),sc);
+    private void findRank(Over currentOver, int score){
+        Integer bucketRank = currentOver.getBucketRank();
+        if(bucketRank == null){
+            int currentBucketPlayers = ranksArray[36-score]+1;
+            ranksArray[36-score]=currentBucketPlayers;
+            currentOver.setBucketRank(currentBucketPlayers);
+            bucketRank = currentBucketPlayers;
         }
-
-        sc.getUsers().add(userId);
-        Iterator<Scores> it = scoreSet.iterator();
-        int rank = 1;
-        while (it.hasNext()) {
-            if (it.next().getScore().equals(sc.getScore())){
-                currentOver.setRank(rank);
-                break;
-            }
-            rank++;
+        int indexInRankArr = 36-score;
+        int previousRanksCount = 0;
+        for(int i=0; i< indexInRankArr;i++){
+            previousRanksCount+=ranksArray[i];
         }
+        currentOver.setRank(bucketRank+previousRanksCount);
     }
 }

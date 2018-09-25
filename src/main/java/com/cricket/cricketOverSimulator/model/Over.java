@@ -1,6 +1,7 @@
 package com.cricket.cricketOverSimulator.model;
 
 import com.cricket.cricketOverSimulator.utils.Constants;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.HashMap;
@@ -26,6 +27,17 @@ public class Over {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer rank;
+
+    public Integer getBucketRank() {
+        return bucketRank;
+    }
+
+    public void setBucketRank(Integer bucketRank) {
+        this.bucketRank = bucketRank;
+    }
+
+    @JsonIgnore
+    private Integer bucketRank;
 
     public Integer getRank() {
         return rank;
